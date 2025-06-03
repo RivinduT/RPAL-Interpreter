@@ -1,22 +1,16 @@
-'''
-Parser for the abstract syntax tree (AST) of RPAL.
-This parser reads tokens from a file, builds the AST according to the grammar rules,
-and provides functions to print the AST and read expected tokens.
-'''
-
 from src.screener import filterTokens
 from src.stack import Stack
 from src.node import *
 
-#Stack containing nodes
+# A stack containing nodes
 stack = Stack("AST")
 
-#Builds the abstract syntax tree.
+# This function is used to build the abstract syntax tree.
 def buildAST(value, num_children):
     node = Node(value)
     node.children = [None] * num_children
     
-    for i in range(num_children):
+    for i in range (0, num_children):
         if stack.is_empty():
             print("Stack is empty")
             exit(1)
@@ -24,11 +18,11 @@ def buildAST(value, num_children):
         
     stack.push(node)
  
-#Prints the abstract syntax tree in preorder traversal.    
+# This function is used to print the abstract syntax tree in preorder traversal.    
 def printAST(root):
     preOrderTraversal(root)
  
-#Reads the expected token. 
+# This function is used to read the expected token. 
 def read(expected_token):
     if tokens[0].content != expected_token:
         print("Syntax error in line " + str(tokens[0].lineNumber) + ": Expected " + str(expected_token) + " but got " + str(tokens[0].content))
@@ -39,14 +33,13 @@ def read(expected_token):
         
     else:
         if tokens[0].tokenType != ")":
-            tokens[0].tokenType = ")"
+            tokens[0].tokenType = ")"    
+            
 
-
-# Parses the input file and builds the abstract syntax tree.
 def parse(file_name):
     global tokens
     tokens, invalid_flag, invalid_token = filterTokens(file_name)
-
+    
     # If there are invalid tokens, we cannot proceed with the parsing.
     if invalid_flag:
         print("Invalid token present in line " + str(invalid_token.lineNumber) + ": " + str(invalid_token.content))
@@ -82,7 +75,7 @@ def procedureE():
         read("fn")
         n = 0
 
-        while tokens[0].tokenType == "<IDENTIFIER>" or tokens[0].tokenType == "(": 
+        while tokens[0].tokenType == "<IDENTIFIER>" or tokens[0].tokenType == "(":  
             procedureVb()
             n += 1
             
@@ -104,10 +97,10 @@ def procedureE():
 
 ##############################################################
 def procedureEw():
-    # Ew -> T    
+    # Ew -> T
     procedureT()
-    
-    # Ew -> T 'where' Dr   
+
+    # Ew -> T 'where' Dr
     if tokens[0].content == "where":
         read("where")
         procedureDr()
@@ -117,7 +110,7 @@ def procedureEw():
 def procedureT():     
     # T -> Ta
     procedureTa()
-
+    
     # T -> Ta (','  Ta)+
     n = 0
     while tokens[0].content == ",":
@@ -143,7 +136,7 @@ def procedureTa():
 def procedureTc():   
     # Tc -> B
     procedureB()
-
+    
     # Tc -> B '->' Tc '|' Tc
     if tokens[0].content == "->":  
         read("->")
@@ -190,7 +183,7 @@ def procedureBs():
     # Bs -> Bp
     else:
         procedureBp()
-
+        
 ##############################################################
 def procedureBp():           
     # Bp -> A
@@ -317,111 +310,190 @@ def procedureR():
     # R -> R Rn
     while  tokens[0].tokenType in ["<IDENTIFIER>", "<INTEGER>", "<STRING>"] or tokens[0].content in ["true", "false","nil", "(", "dummy"]: 
         procedureRn()
-        buildAST("apply", 2)
-        
+        buildAST("gamma", 2)
+
 ##############################################################
-def procedureRn():     
-    # Rn -> <IDENTIFIER> | <INTEGER> | <STRING> | true | false | nil | dummy
+def procedureRn():   
+    value = tokens[0].content
+    
+    # Rn -> <IDENTIFIER>
     if tokens[0].tokenType == "<IDENTIFIER>":
-        buildAST("<ID:" + tokens[0].content + ">", 0)
-        read(tokens[0].content)
+        read(value)
+        buildAST("<ID:" + value + ">", 0)
     
+    # Rn -> <INTEGER>    
     elif tokens[0].tokenType == "<INTEGER>":
-        buildAST("<INT:" + tokens[0].content + ">", 0)
-        read(tokens[0].content)
-    
+        read(value)
+        buildAST("<INT:" + value + ">", 0)
+        
+    # Rn -> <STRING>    
     elif tokens[0].tokenType == "<STRING>":
-        buildAST("<STR:" + tokens[0].content + ">", 0)
-        read(tokens[0].content)
-    
-    elif tokens[0].content == "true":
-        buildAST("true", 0)
-        read("true")
-    
-    elif tokens[0].content == "false":
-        buildAST("false", 0)
-        read("false")
+        read(value)
+        buildAST("<STR:" + value + ">", 0)
         
-    elif tokens[0].content == "nil":
-        buildAST("nil", 0)
-        read("nil")
-        
-    elif tokens[0].content == "dummy":
-        buildAST("dummy", 0)
-        read("dummy")
-        
-    # Rn -> '(' E ')'
-    elif tokens[0].content == "(":
+    # Rn -> 'true'
+    #    -> 'false'
+    #    -> 'nil'
+    #    -> 'dummy'    
+    elif value in ["true", "false", "nil", "dummy"]:
+        read(value)
+        buildAST("<" + value + ">", 0)
+      
+    # Rn -> '(' E ')'    
+    elif value == "(":
         read("(")
         procedureE()
         
-        if tokens[0].content == ")":
+        if tokens[0].content == ")":     
             read(")")
         else:
             print("Syntax error in line " + str(tokens[0].lineNumber) + ": ')' expected")
             exit(1)
             
     else:
-        print("Syntax error in line " + str(tokens[0].lineNumber) + ": Identifier, Integer, String, true, false, nil, dummy or '(' expected")
+        print("Syntax error in line " + str(tokens[0].lineNumber) + ": Identifier, Integer, String, 'true', 'false', 'nil', 'dummy' or '(' expected")
         exit(1)
-        
-##############################################################
-def procedureD():
-    # D -> Db
-    procedureDb()
-    
-    # D -> Db ';' D
-    if tokens[0].content == ";":
-        read(";")
-        procedureD()
-        buildAST("Dseq", 2)
 
 ##############################################################
-def procedureDb():
-    # Db -> <IDENTIFIER> '=' E
-    if tokens[0].tokenType == "<IDENTIFIER>":
-        buildAST("<ID:" + tokens[0].content + ">", 0)
-        read(tokens[0].content)
+def procedureD():
+    # D -> Da
+    procedureDa()
+    
+    # D -> Da 'within' D
+    if tokens[0].content == "within":
+        read("within")
+        procedureD()
+        buildAST("within", 2)
+    
+##############################################################
+def procedureDa():
+    # Da -> Dr
+    procedureDr()
+    
+    # Da -> Dr ('and' Dr)+
+    n = 0
+    while tokens[0].content == "and":
+        read("and")
+        procedureDr()
+        n += 1
         
-        if tokens[0].content == "=":
+    if n > 0:  
+        buildAST("and", n + 1)
+    
+##############################################################
+def procedureDr():
+    # Dr -> 'rec' Db
+    if tokens[0].content == "rec":
+        read("rec")
+        procedureDb()
+        buildAST("rec", 1)
+        
+    # Dr -> Db
+    else:
+        procedureDb()
+    
+##############################################################
+def procedureDb():    
+    value = tokens[0].content
+    
+    # Db -> '(' D ')'
+    if value == "(":
+        read("(")
+        procedureD()
+        
+        if tokens[0].content == ")":
+            read(")")
+        else:
+            print("Syntax error in line " + str(tokens[0].lineNumber) + ": ')' expected")
+            exit(1)
+
+    elif tokens[0].tokenType == "<IDENTIFIER>":
+        read(value)
+        buildAST("<ID:" + value + ">", 0)  
+
+        # Db -> <IDENTIFIER> Vb+ '=' E
+        if tokens[0].content in [",", "="]:  
+            procedureVl()
             read("=")
             procedureE()
             buildAST("=", 2)
-        else:
-            print("Syntax error in line " + str(tokens[0].lineNumber) + ": '=' expected")
-            exit(1)
-            
-    else:
-        print("Syntax error in line " + str(tokens[0].lineNumber) + ": Identifier expected")
-        exit(1)
+        
+        # Db -> Vl '=' E
+        else: 
+            n = 0
+        
+            while tokens[0].tokenType == "<IDENTIFIER>" or tokens[0].tokenType == "(":
+                procedureVb()
+                n += 1
+                
+            if n == 0:
+                print("Syntax error in line " + str(tokens[0].lineNumber) + ": Identifier or '(' expected")
+                exit(1)    
+                
+            if tokens[0].content == "=":
+                read("=")
+                procedureE()
+                buildAST("function_form", n + 2)
+            else:
+                print("Syntax error in line " + str(tokens[0].lineNumber) + ": '=' expected")
+                exit(1)
 
 ##############################################################
-def procedureDr():
-    # Dr -> Db
-    procedureDb()
+def procedureVb(): 
+    # Vb -> <IDENTIFIER>
+    #    -> '(' Vl ')'
+    #    -> '(' ')' 
     
-    # Dr -> Db ',' Dr
-    if tokens[0].content == ",":
-        read(",")
-        procedureDr()
-        buildAST("Dseq", 2)
-        
-##############################################################
-def procedureVb():
+    value_1 = tokens[0].content 
+
     # Vb -> <IDENTIFIER>
     if tokens[0].tokenType == "<IDENTIFIER>":
-        buildAST("<ID:" + tokens[0].content + ">", 0)
-        read(tokens[0].content)
+        read(value_1)
+        buildAST("<ID:" + value_1 + ">", 0)     
         
-    # Vb -> '(' Vb ')'
-    elif tokens[0].content == "(":
+    elif value_1 == "(":
         read("(")
-        procedureVb()
-        if tokens[0].content == ")":
+        
+        value_2 = tokens[0].content 
+        
+        # Vb -> '(' ')'
+        if value_2 == ")":
             read(")")
+            buildAST("()", 0)
+        
+        # Vb -> '(' Vl ')'
+        elif tokens[0].tokenType == "<IDENTIFIER>": 
+            read(value_2)
+            buildAST("<ID:" + value_2 + ">", 0)    
+            procedureVl()
+            
+            if tokens[0].content == ")":
+                read(")")
+            else:
+                print("Syntax error in line " + str(tokens[0].lineNumber) + ": ')' expected")
+                exit(1)
         else:
-            print("Syntax error in line " + str(tokens[0].lineNumber) + ": ')' expected")
+            print("Syntax error in line " + str(tokens[0].lineNumber) + ": Identifier or ')' expected")
             exit(1)
     else:
         print("Syntax error in line " + str(tokens[0].lineNumber) + ": Identifier or '(' expected")
         exit(1)
+    
+##############################################################
+def procedureVl():
+    # Vl -> <IDENTIFIER> (',' <IDENTIFIER>)*   
+    n = 0
+    
+    while tokens[0].content == ",":
+        read(",")
+        
+        if tokens[0].tokenType == "<IDENTIFIER>":
+            value = tokens[0].content
+            read(value)
+            buildAST("<ID:" + value + ">", 0)    
+            n += 1
+        else:
+            print("Syntax error in line " + str(tokens[0].lineNumber) + ": Identifier expected")
+            
+    if n > 0:
+        buildAST(",", n + 1) 
