@@ -36,20 +36,20 @@ def filterTokens(fileName):
         token = tokenStream[i]
 
         # Tag keywords
-        if token.type == "<IDENTIFIER>" and token.content in rpalKeywords:
-            token.make_keyword()
+        if token.tokenType == "<IDENTIFIER>" and token.content in rpalKeywords:
+            token.markAsKeyword()
 
         # Remove whitespace, comments, and line breaks
-        if token.type == "<DELETE>" or token.content == "\n":
+        if token.tokenType == "<DELETE>" or token.content == "\n":
             tokenStream.pop(i)
 
         # Flag first encountered invalid token
-        if token.type == "<INVALID>" and not hasInvalidToken:
+        if token.tokenType == "<INVALID>" and not hasInvalidToken:
             hasInvalidToken = True
             firstInvalidToken = token
 
     # Ensure last token is marked properly
     if tokenStream:
-        tokenStream[-1].is_last_token = True
+        tokenStream[-1].isLastToken = True
 
     return tokenStream, hasInvalidToken, firstInvalidToken

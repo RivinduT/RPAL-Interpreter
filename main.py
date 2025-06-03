@@ -8,7 +8,7 @@ if __name__ == "__main__":
     arguments = sys.argv
     
     if len(arguments) < 2:
-        print("Incorrect usage. Please run the command as follows:\n python ./myrpal.py [-l] [-ast] [-st] filename")
+        print("Incorrect usage. Please run the command as follows:\n python ./main.py [-l] [-ast] [-st] filename")
         sys.exit(1)
         
     else:
@@ -32,23 +32,23 @@ if __name__ == "__main__":
                 # When '-ast' is present, generate and display the abstract syntax tree (AST).
                 if "-ast" in switches:
                     ast = parse(file_name)
-                    preorder_traversal(ast)
+                    preOrderTraversal(ast)
                     
                     print()
                     
                     # If '-st' is also included, produce and show the standardized tree.
                     if "-st" in switches:
-                        st = make_standardized_tree(ast)
-                        preorder_traversal(st)
-                        
-                        print() 
+                        st = buildST(ast)
+                        preOrderTraversal(st)
+
+                        print()
                         exit()
                 
                 # If only '-st' is specified, create and print the standardized tree.
                 elif "-st" in switches:
-                    st = standardize(file_name)  
-                    preorder_traversal(st)
-                    
+                    st = standardize(file_name)
+                    preOrderTraversal(st)
+
                     print()
                     exit()
             

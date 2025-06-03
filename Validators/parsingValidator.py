@@ -1,6 +1,6 @@
 from src.parser import *
 
-prog_file = input()
+progFile = input()
 
-tree = parse(prog_file)
+tree = parse(progFile)
 printAST(tree)

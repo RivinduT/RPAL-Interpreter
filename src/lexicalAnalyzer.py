@@ -164,16 +164,16 @@ def extractTokens(inputChars):
     for i in range(totalTokens):
         if i == 0:
             tokenValues[i] = Token(tokenValues[i], tokenTypes[i], lineInfo[i])
-            tokenValues[i].make_first_token()
+            tokenValues[i].markAsFirst()
         elif i == totalTokens - 1:
             if tokenValues[i] == '\n':
-                tokenValues[i - 1].make_last_token()
+                tokenValues[i - 1].markAsLast()
                 del tokenValues[i]
                 del tokenTypes[i]
                 del lineInfo[i]
             else:
                 tokenValues[i] = Token(tokenValues[i], tokenTypes[i], lineInfo[i])
-                tokenValues[i].make_last_token()
+                tokenValues[i].markAsLast()
         else:
             tokenValues[i] = Token(tokenValues[i], tokenTypes[i], lineInfo[i])
 
