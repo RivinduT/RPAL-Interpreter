@@ -3,14 +3,17 @@ from src.environmentManager import Environment
 
 class TestEnvironmentManager(unittest.TestCase):
     def setUp(self):
+        # Initialize a new environment for each test
         self.env = Environment(0, None)
 
     def test_basic_binding(self):
+        # Test simple variable binding and retrieval
         self.env.variables["x"] = 5
         value = self.env.variables["x"]
         self.assertEqual(value, 5)
 
     def test_nested_environment(self):
+        # Test variable access in nested environments
         self.env.variables["x"] = 5
         child_env = Environment(1, self.env)
         child_env.variables["y"] = 10
@@ -24,6 +27,7 @@ class TestEnvironmentManager(unittest.TestCase):
             _ = self.env.variables["y"]
 
     def test_shadowing(self):
+        # Test variable shadowing in nested environments
         self.env.variables["x"] = 5
         child_env = Environment(1, self.env)
         child_env.variables["x"] = 10
@@ -35,6 +39,7 @@ class TestEnvironmentManager(unittest.TestCase):
         self.assertEqual(self.env.variables["x"], 5)
 
     def test_multiple_bindings(self):
+        # Test multiple variable bindings in same environment
         self.env.variables["x"] = 5
         self.env.variables["y"] = 10
         self.env.variables["z"] = 15
@@ -44,11 +49,12 @@ class TestEnvironmentManager(unittest.TestCase):
         self.assertEqual(self.env.variables["z"], 15)
 
     def test_undefined_variable(self):
+        # Test accessing undefined variable raises KeyError
         with self.assertRaises(KeyError):
             _ = self.env.variables["undefined"]
 
     def test_environment_chain(self):
-        # Create a chain of environments
+        # Test variable lookup in chain of environments
         self.env.variables["x"] = 1
         child1 = Environment(1, self.env)
         child1.variables["x"] = 2

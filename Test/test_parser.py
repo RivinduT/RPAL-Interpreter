@@ -18,6 +18,7 @@ class TestParser(unittest.TestCase):
             f.write(content)
 
     def test_simple_expression(self):
+        # Test parsing of basic arithmetic expression
         self.write_test_input("5 + 3")
         ast = parse(self.test_file)
         
@@ -27,6 +28,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(ast.children[1].value, "<INT:3>")
 
     def test_let_expression(self):
+        # Test parsing of let-in binding expression
         self.write_test_input("let x = 5 in x + 3")
         ast = parse(self.test_file)
         
@@ -36,6 +38,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(ast.children[1].value, "=")
 
     def test_lambda_expression(self):
+        # Test parsing of lambda function definition
         self.write_test_input("fn x.x + 1")
         ast = parse(self.test_file)
         
@@ -45,6 +48,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(ast.children[1].value, "+")
 
     def test_where_expression(self):
+        # Test parsing of where clause with multiple bindings
         self.write_test_input("x + y where x = 5; y = 3")
         ast = parse(self.test_file)
         
@@ -53,6 +57,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(ast.children[0].value, "+")
 
     def test_recursive_expression(self):
+        # Test parsing of recursive function definition
         self.write_test_input("rec f = fn x.if x=0 then 1 else x*f(x-1)")
         ast = parse(self.test_file)
         
