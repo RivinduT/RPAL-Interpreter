@@ -1,0 +1,10 @@
+let rec PalSeries x y =
+    x ls y -> x eq (Reverse x 0) -> (PalSeries (x + 1) y, Print ' ', Print x)
+    | PalSeries (x + 1) y
+    | nil 
+where rec Reverse n r =  
+    n eq 0 -> r
+    | Reverse (n / 10) (r * 10 + (n - (n/10) * 10))
+in 
+    PalSeries 1 100
+ 

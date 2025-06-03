@@ -1,0 +1,6 @@
+let OddEvenSeries T = OddEvenSeriesRec T 1
+where rec OddEvenSeriesRec T i = 
+    i > Order T -> nill |
+    (OddEvenSeriesRec T (i+1) ,Print ' ', Print OddEven (T i))
+where OddEven n = ( n - (n/2) * 2) eq 1 -> 'Odd' | 'Even'
+in OddEvenSeries (2,2,3,4,5,6,7,8,9,10) 

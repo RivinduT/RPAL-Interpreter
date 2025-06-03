@@ -1,0 +1,11 @@
+let PrintFib k = FibSeries (0, k)
+where rec FibSeries (a, b) = 
+    b gr (Fib a) -> ((FibSeries((a+1) , b)) aug (Fib a))
+    | nil
+where rec Fib n = 
+    n eq 0 -> 0
+    | n eq 1 -> 1
+    | n eq 2 -> 1
+    | (Fib (n - 1)) + (Fib (n - 2))
+in  
+    Print(PrintFib 100)
