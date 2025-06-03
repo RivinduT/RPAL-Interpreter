@@ -1,7 +1,7 @@
 import unittest
 import sys, os
 
-# ─── Make sure "<project_root>/src" is on sys.path ───
+# ─── Ensure "<project_root>/src" is on sys.path ───
 sys.path.insert(
     0,
     os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -12,28 +12,40 @@ from src.node import Node
 
 class TestParser(unittest.TestCase):
     def setUp(self):
-        # Minimal valid RPAL snippet: "let A x = x in A 5"
-        self.test_file = os.path.join(os.path.dirname(__file__), 'temp_parse.rpal')
-        with open(self.test_file, 'w') as f:
+        # 1) Minimal valid RPAL snippet
+        self.valid_file = os.path.join(os.path.dirname(__file__), 'temp_parse_valid.rpal')
+        with open(self.valid_file, 'w') as f:
             f.write("let A x = x in A 5")
 
+        # 2) Nested let with pure function application (no arithmetic)
+        #    let A x = x in let B y = y in B (A 3)
+        self.nested_file = os.path.join(os.path.dirname(__file__), 'temp_parse_nested.rpal')
+        with open(self.nested_file, 'w') as f:
+            f.write("let A x = x in let B y = y in B (A 3)")
+
+        # 3) Incomplete snippet (missing 'in' clause)
+        self.bad_file = os.path.join(os.path.dirname(__file__), 'temp_parse_bad.rpal')
+        with open(self.bad_file, 'w') as f:
+            f.write("let A x = x")  # no "in" part
+
     def tearDown(self):
-        if os.path.exists(self.test_file):
-            os.remove(self.test_file)
+        for path in (self.valid_file, self.nested_file, self.bad_file):
+            if os.path.exists(path):
+                os.remove(path)
 
-    def test_parse_returns_node(self):
-        root = parse(self.test_file)
+    def test_parse_returns_node_on_valid(self):
+        root = parse(self.valid_file)
         self.assertIsInstance(root, Node)
 
-    def test_invalid_syntax_returns_node(self):
-        # Parser does NOT exit(1) for this content; it still returns a Node
-        bad_file = os.path.join(os.path.dirname(__file__), 'temp_bad.rpal')
-        with open(bad_file, 'w') as f:
-            f.write("this is not a valid RPAL program")
+    def test_parse_nested_let(self):
+        # Now without arithmetic—just nested lets and applications
+        node = parse(self.nested_file)
+        self.assertIsInstance(node, Node)
 
-        root = parse(bad_file)
-        self.assertIsInstance(root, Node)
-        os.remove(bad_file)
+    def test_parse_incomplete_syntax_raises(self):
+        # Incomplete 'let A x = x' should cause a SystemExit (syntax error)
+        with self.assertRaises(SystemExit):
+            parse(self.bad_file)
 
 if __name__ == '__main__':
     unittest.main()
