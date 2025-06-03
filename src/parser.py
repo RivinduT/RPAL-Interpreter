@@ -1,3 +1,9 @@
+'''
+Parser for the abstract syntax tree (AST) of RPAL.
+This parser reads tokens from a file, builds the AST according to the grammar rules,
+and provides functions to print the AST and read expected tokens.
+'''
+
 from src.screener import filterTokens
 from src.stack import Stack
 from src.node import *
