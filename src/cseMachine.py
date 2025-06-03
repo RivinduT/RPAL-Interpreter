@@ -16,110 +16,93 @@ from src.stack import Stack
 from src.structures import *
 
 controlStructures = []
-controlIndex = 0
+count = 0
 control = []
-stack = Stack("CSE")  # Stack for the CSE machine
+stack = Stack("CSE")                        # Stack for the CSE machine
 environments = [Environment(0, None)]
 currentEnvironment = 0
-builtInFunctions = [
-    "Order", "Print", "print", "Conc", "Stern", "Stem",
-    "Isinteger", "Istruthvalue", "Isstring", "Istuple",
-    "Isfunction", "ItoS"
-]
+builtInFunctions = ["Order", "Print", "print", "Conc", "Stern", "Stem", "Isinteger", "Istruthvalue", "Isstring", "Istuple", "Isfunction", "ItoS"]
 printPresent = False
 
-# Function to generate control structures from the AST
-def generateControlStructure(rootNode, index):
-    global controlIndex
 
-    # Ensure controlStructures list has enough sublists
-    while len(controlStructures) <= index:
+def generateControlStructure(root, i):
+    global count
+    
+    while(len(controlStructures) <= i):
         controlStructures.append([])
 
-    # Handle lambda expression node
-    if rootNode.value == "lambda":
-        controlIndex += 1
-        leftChild = rootNode.children[0]
-
-        if leftChild.value == ",":
-            tempLambda = Lambda(controlIndex)
-
-            boundVars = ""
+    # When lambda is encountered, we have to generate a new control structure.
+    if (root.value == "lambda"):
+        count += 1
+        leftChild = root.children[0]
+        if (leftChild.value == ","):
+            temp = Lambda(count)
+            
+            x = ""
             for child in leftChild.children:
-                boundVars += child.value[4:-1] + ","
-            boundVars = boundVars[:-1]
-
-            tempLambda.bounded_variable = boundVars
-            controlStructures[index].append(tempLambda)
+                x += child.value[4:-1] + ","
+            x = x[:-1]
+            
+            temp.boundedVariable = x
+            controlStructures[i].append(temp)
         else:
-            tempLambda = Lambda(controlIndex)
-            tempLambda.bounded_variable = leftChild.value[4:-1]
-            controlStructures[index].append(tempLambda)
+            temp = Lambda(count)
+            temp.boundedVariable = leftChild.value[4:-1]
+            controlStructures[i].append(temp)
 
-        # Recursively generate for the rest of the children in the lambda
-        for child in rootNode.children[1:]:
-            generateControlStructure(child, controlIndex)
+        for child in root.children[1:]:
+            generateControlStructure(child, count)
 
-    # Handle conditional '->' node
-    elif rootNode.value == "->":
-        controlIndex += 1
-        deltaThen = Delta(controlIndex)
-        controlStructures[index].append(deltaThen)
-        generateControlStructure(rootNode.children[1], controlIndex)
+    elif (root.value == "->"):
+        count += 1
+        temp = Delta(count)
+        controlStructures[i].append(temp)
+        generateControlStructure(root.children[1], count)
+        count += 1
+        temp = Delta(count)
+        controlStructures[i].append(temp)
+        generateControlStructure(root.children[2], count)
+        controlStructures[i].append("beta")
+        generateControlStructure(root.children[0], i)
 
-        controlIndex += 1
-        deltaElse = Delta(controlIndex)
-        controlStructures[index].append(deltaElse)
-        generateControlStructure(rootNode.children[2], controlIndex)
+    elif (root.value == "tau"):
+        n = len(root.children)
+        temp = Tau(n)
+        controlStructures[i].append(temp)
+        for child in root.children:
+            generateControlStructure(child, i)
 
-        controlStructures[index].append("beta")
-        generateControlStructure(rootNode.children[0], index)
-
-    # Handle tuple constructor 'tau' node
-    elif rootNode.value == "tau":
-        childCount = len(rootNode.children)
-        tauNode = Tau(childCount)
-        controlStructures[index].append(tauNode)
-        for child in rootNode.children:
-            generateControlStructure(child, index)
-
-    # Handle all other nodes (variables, operators, etc.)
     else:
-        controlStructures[index].append(rootNode.value)
-        for child in rootNode.children:
-            generateControlStructure(child, index)
+        controlStructures[i].append(root.value)
+        for child in root.children:
+            generateControlStructure(child, i)
 
-
-def lookup(nameToken):
-    """
-    Lookup and convert tokens beginning with '<' and ending with '>'
-    into their corresponding internal values.
-    """
-    name = nameToken[1:-1]
+def lookup(name):
+    name = name[1:-1]
     info = name.split(":")
-
-    if len(info) == 1:
+    
+    if (len(info) == 1):
         value = info[0]
     else:
         dataType = info[0]
         value = info[1]
-
+    
         if dataType == "INT":
             return int(value)
         elif dataType == "STR":
             return value.strip("'")
         elif dataType == "ID":
-            if value in builtInFunctions:
+            if (value in builtInFunctions):
                 return value
             else:
                 try:
                     value = environments[currentEnvironment].variables[value]
                 except KeyError:
-                    print(f"Undeclared Identifier: {value}")
+                    print("Undeclared Identifier: " + value)
                     exit(1)
                 else:
                     return value
-
+            
     if value == "Y*":
         return "Y*"
     elif value == "nil":
@@ -128,242 +111,253 @@ def lookup(nameToken):
         return True
     elif value == "false":
         return False
-
-
-def builtIn(functionName, argument):
-    """
-    Handles built-in functions like Order, Print, Conc, and type checks.
-    Pushes results to the stack as needed.
-    """
+    
+def builtIn(function, argument):
     global printPresent
+    
+    if (function == "Order"):
+        order = len(argument)
+        stack.push(order)
 
-    if functionName == "Order":
-        # Returns length of a tuple
-        stack.push(len(argument))
-
-    elif functionName in ("Print", "print"):
-        # Marks print as requested and pushes formatted output
+    elif (function == "Print" or function == "print"):
         printPresent = True
-        if isinstance(argument, str):
-            argument = argument.replace("\\n", "\n").replace("\\t", "\t")
+        
+        if type(argument) == str:
+            if "\\n" in argument:
+                argument = argument.replace("\\n", "\n")
+            if "\\t" in argument:
+                argument = argument.replace("\\t", "\t")
+
         stack.push(argument)
 
-    elif functionName == "Conc":
-        # Concatenate two strings from stack
+    elif (function == "Conc"):
         stackSymbol = stack.pop()
         control.pop()
-        concatenated = argument + stackSymbol
-        stack.push(concatenated)
+        temp = argument + stackSymbol
+        stack.push(temp)
 
-    elif functionName == "Stern":
-        # Returns string without first character
+    elif (function == "Stern"):
         stack.push(argument[1:])
 
-    elif functionName == "Stem":
-        # Returns first character of the string
+    elif (function == "Stem"):
         stack.push(argument[0])
 
-    elif functionName == "Isinteger":
-        # Check if argument is an integer
-        stack.push(isinstance(argument, int))
+    elif (function == "Isinteger"):
+        if (type(argument) == int):
+            stack.push(True)
+        else:
+            stack.push(False)
 
-    elif functionName == "Istruthvalue":
-        # Check if argument is a boolean
-        stack.push(isinstance(argument, bool))
+    elif (function == "Istruthvalue"):
+        if (type(argument) == bool):
+            stack.push(True)
+        else:
+            stack.push(False)
 
-    elif functionName == "Isstring":
-        # Check if argument is a string
-        stack.push(isinstance(argument, str))
+    elif (function == "Isstring"):
+        if (type(argument) == str):
+            stack.push(True)
+        else:
+            stack.push(False)
 
-    elif functionName == "Istuple":
-        # Check if argument is a tuple
-        stack.push(isinstance(argument, tuple))
+    elif (function == "Istuple"):
+        if (type(argument) == tuple):
+            stack.push(True)
+        else:
+            stack.push(False)
 
-    elif functionName == "Isfunction":
-        # Check if argument is a built-in function
-        stack.push(argument in builtInFunctions)
-
-    elif functionName == "ItoS":
-        # Convert integer to string
-        if isinstance(argument, int):
+    elif (function == "Isfunction"):
+        if (argument in builtInFunctions):
+            return True
+        else:
+            False
+    
+    elif (function == "ItoS"):
+        if (type(argument) == int):
             stack.push(str(argument))
         else:
             print("Error: ItoS function can only accept integers.")
-            exit(1)
-
+            exit()
 
 def applyRules():
-    """
-    Main evaluator loop that applies reduction rules on the control list and stack.
-    Executes the control structure using rules inspired by the CSE machine.
-    """
-    binaryOperators = ["+", "-", "*", "/", "**", "gr", "ge", "ls", "le", "eq", "ne", "or", "&", "aug"]
-    unaryOperators = ["neg", "not"]
+    op = ["+", "-", "*", "/", "**", "gr", "ge", "ls", "le", "eq", "ne", "or", "&", "aug"]
+    uop = ["neg", "not"]
 
     global control
     global currentEnvironment
 
-    while len(control) > 0:
+    while(len(control) > 0):
         symbol = control.pop()
 
-        # Rule 1: Lookup tokens beginning with '<' and ending with '>'
-        if isinstance(symbol, str) and symbol.startswith("<") and symbol.endswith(">"):
+        if type(symbol) == str and (symbol[0] == "<" and symbol[-1] == ">"):
             stack.push(lookup(symbol))
 
-        # Rule 2: Push Lambda with environment info onto stack
-        elif isinstance(symbol, Lambda):
-            newLambda = Lambda(symbol.number)
-            newLambda.bounded_variable = symbol.bounded_variable
-            newLambda.environment = currentEnvironment
-            stack.push(newLambda)
+        elif type(symbol) == Lambda:
+            temp = Lambda(symbol.number)
+            temp.boundedVariable = symbol.boundedVariable
+            temp.environment = currentEnvironment
+            stack.push(temp)
 
-        # Rule 4: Function application
-        elif symbol == "gamma":
-            operand1 = stack.pop()
-            operand2 = stack.pop()
+        elif (symbol == "gamma"):
+            stackSymbol1 = stack.pop()
+            stackSymbol2 = stack.pop()
 
-            # If operand1 is a Lambda expression
-            if isinstance(operand1, Lambda):
+            if (type(stackSymbol1) == Lambda):
                 currentEnvironment = len(environments)
+                
+                lambdaNumber = stackSymbol1.number
+                boundedVariable = stackSymbol1.boundedVariable
+                parentEnvironmentNumber = stackSymbol1.environment
 
-                lambdaNum = operand1.number
-                boundedVar = operand1.bounded_variable
-                parentEnvNum = operand1.environment
+                parent = environments[parentEnvironmentNumber]
+                child = Environment(currentEnvironment, parent)
+                parent.addChild(child)
+                environments.append(child)
 
-                parentEnv = environments[parentEnvNum]
-                childEnv = Environment(currentEnvironment, parentEnv)
-                parentEnv.addChild(childEnv)
-                environments.append(childEnv)
-
-                # Add variables to new environment
-                varList = boundedVar.split(",")
-                if len(varList) > 1:
-                    for i, var in enumerate(varList):
-                        childEnv.addVariable(var, operand2[i])
+                variableList = boundedVariable.split(",")
+                
+                if (len(variableList) > 1):
+                    for i in range(len(variableList)):
+                        child.addVariable(variableList[i], stackSymbol2[i])
                 else:
-                    childEnv.addVariable(boundedVar, operand2)
+                    child.addVariable(boundedVariable, stackSymbol2)
 
-                stack.push(childEnv.name)
-                control.append(childEnv.name)
-                control += controlStructures[lambdaNum]
+                stack.push(child.name)
+                control.append(child.name)
+                control += controlStructures[lambdaNumber]
 
-            # Tuple indexing
-            elif isinstance(operand1, tuple):
-                stack.push(operand1[operand2 - 1])
+            elif (type(stackSymbol1) == tuple):
+                stack.push(stackSymbol1[stackSymbol2 - 1])
 
-            # Eta expansion rule
-            elif operand1 == "Y*":
-                tempEta = Eta(operand2.number)
-                tempEta.bounded_variable = operand2.bounded_variable
-                tempEta.environment = operand2.environment
-                stack.push(tempEta)
+            elif (stackSymbol1 == "Y*"):
+                temp = Eta(stackSymbol2.number)
+                temp.boundedVariable = stackSymbol2.boundedVariable
+                temp.environment = stackSymbol2.environment
+                stack.push(temp)
 
-            # Eta application rule
-            elif isinstance(operand1, Eta):
-                tempLambda = Lambda(operand1.number)
-                tempLambda.bounded_variable = operand1.bounded_variable
-                tempLambda.environment = operand1.environment
-
+            elif (type(stackSymbol1) == Eta):
+                temp = Lambda(stackSymbol1.number)
+                temp.boundedVariable = stackSymbol1.boundedVariable
+                temp.environment = stackSymbol1.environment
+                
                 control.append("gamma")
                 control.append("gamma")
-                stack.push(operand2)
-                stack.push(operand1)
-                stack.push(tempLambda)
+                stack.push(stackSymbol2)
+                stack.push(stackSymbol1)
+                stack.push(temp)
 
-            # Built-in functions
-            elif operand1 in builtInFunctions:
-                builtIn(operand1, operand2)
-
-        # Rule 5: Environment switch
-        elif isinstance(symbol, str) and symbol.startswith("e_"):
+            elif stackSymbol1 in builtInFunctions:
+                builtIn(stackSymbol1, stackSymbol2)
+              
+        elif type(symbol) == str and (symbol[0:2] == "e_"):
             stackSymbol = stack.pop()
             stack.pop()
-
-            if currentEnvironment != 0:
+            
+            if (currentEnvironment != 0):
                 for element in reversed(stack):
-                    if isinstance(element, str) and element.startswith("e_"):
+                    if (type(element) == str and element[0:2] == "e_"):
                         currentEnvironment = int(element[2:])
                         break
             stack.push(stackSymbol)
 
-        # Rule 6: Binary operators
-        elif symbol in binaryOperators:
-            rightOperand = stack.pop()
-            leftOperand = stack.pop()
-
-            if symbol == "+":
-                stack.push(leftOperand + rightOperand)
-            elif symbol == "-":
-                stack.push(leftOperand - rightOperand)
-            elif symbol == "*":
-                stack.push(leftOperand * rightOperand)
-            elif symbol == "/":
-                stack.push(leftOperand // rightOperand)
-            elif symbol == "**":
-                stack.push(leftOperand ** rightOperand)
-            elif symbol == "gr":
-                stack.push(leftOperand > rightOperand)
-            elif symbol == "ge":
-                stack.push(leftOperand >= rightOperand)
-            elif symbol == "ls":
-                stack.push(leftOperand < rightOperand)
-            elif symbol == "le":
-                stack.push(leftOperand <= rightOperand)
-            elif symbol == "eq":
-                stack.push(leftOperand == rightOperand)
-            elif symbol == "ne":
-                stack.push(leftOperand != rightOperand)
-            elif symbol == "or":
-                stack.push(leftOperand or rightOperand)
-            elif symbol == "&":
-                stack.push(leftOperand and rightOperand)
-            elif symbol == "aug":
-                if isinstance(rightOperand, tuple):
-                    stack.push(leftOperand + rightOperand)
+        elif (symbol in op):
+            rand1 = stack.pop()
+            rand2 = stack.pop()
+            if (symbol == "+"): 
+                stack.push(rand1 + rand2)
+            elif (symbol == "-"):
+                stack.push(rand1 - rand2)
+            elif (symbol == "*"):
+                stack.push(rand1 * rand2)
+            elif (symbol == "/"):
+                stack.push(rand1 // rand2)
+            elif (symbol == "**"):
+                stack.push(rand1 ** rand2)
+            elif (symbol == "gr"):
+                stack.push(rand1 > rand2)
+            elif (symbol == "ge"):
+                stack.push(rand1 >= rand2)
+            elif (symbol == "ls"):
+                stack.push(rand1 < rand2)
+            elif (symbol == "le"):
+                stack.push(rand1 <= rand2)
+            elif (symbol == "eq"):
+                stack.push(rand1 == rand2)
+            elif (symbol == "ne"):
+                stack.push(rand1 != rand2)
+            elif (symbol == "or"):
+                stack.push(rand1 or rand2)
+            elif (symbol == "&"):
+                stack.push(rand1 and rand2)
+            elif (symbol == "aug"):
+                if (type(rand2) == tuple):
+                    stack.push(rand1 + rand2)
                 else:
-                    stack.push((leftOperand, rightOperand))
+                    stack.push(rand1 + (rand2,))
 
-        # Rule 7: Unary operators
-        elif symbol in unaryOperators:
-            operand = stack.pop()
-            if symbol == "neg":
-                stack.push(-operand)
-            elif symbol == "not":
-                stack.push(not operand)
+        elif (symbol in uop):
+            rand = stack.pop()
+            if (symbol == "not"):
+                stack.push(not rand)
+            elif (symbol == "neg"):
+                stack.push(-rand)
 
-        # Rule 8: Delta reduction for conditionals
-        elif isinstance(symbol, Delta):
-            condition = stack.pop()
-            if condition is True:
-                control += controlStructures[symbol.number - 1]
+        elif (symbol == "beta"):
+            B = stack.pop()
+            elsePart = control.pop()
+            thenPart = control.pop()
+            if (B):
+                control += controlStructures[thenPart.number]
             else:
-                control += controlStructures[symbol.number]
+                control += controlStructures[elsePart.number]
 
-        # Rule 9: Tau (tuple) constructor
-        elif isinstance(symbol, Tau):
-            elements = []
-            for _ in range(symbol.number):
-                elements.insert(0, stack.pop())
-            stack.push(tuple(elements))
+        elif type(symbol) == Tau:
+            n = symbol.number
+            tauList = []
+            for i in range(n):
+                tauList.append(stack.pop())
+            tauTuple = tuple(tauList)
+            stack.push(tauTuple)
 
-        # Rule 10: Eta reduction
-        elif isinstance(symbol, Eta):
-            tempLambda = Lambda(symbol.number)
-            tempLambda.bounded_variable = symbol.bounded_variable
-            tempLambda.environment = symbol.environment
-
-            control.append("gamma")
-            control.append("gamma")
+        elif (symbol == "Y*"):
             stack.push(symbol)
-            stack.push(symbol)
-            stack.push(tempLambda)
 
-        # Rule 11: Beta reduction
-        elif symbol == "beta":
-            stack.pop()
+    if type(stack[0]) == Lambda:
+        stack[0] = "[lambda closure: " + str(stack[0].boundedVariable) + ": " + str(stack[0].number) + "]"
+         
+    if type(stack[0]) == tuple:          
+        for i in range(len(stack[0])):
+            if type(stack[0][i]) == bool:
+                stack[0] = list(stack[0])
+                stack[0][i] = str(stack[0][i]).lower()
+                stack[0] = tuple(stack[0])
+                
+        if len(stack[0]) == 1:
+            stack[0] = "(" + str(stack[0][0]) + ")"
+        else: 
+            if any(type(element) == str for element in stack[0]):
+                temp = "("
+                for element in stack[0]:
+                    temp += str(element) + ", "
+                temp = temp[:-2] + ")"
+                stack[0] = temp
+                
+    if stack[0] == True or stack[0] == False:
+        stack[0] = str(stack[0]).lower()
 
-        else:
-            print("Error: Invalid symbol encountered.")
-            exit(1)
+def getResult(fileName):
+    global control
 
-    return printPresent, stack.pop()
+    st = standardize(fileName)
+    
+    generateControlStructure(st,0) 
+    
+    control.append(environments[0].name)
+    control += controlStructures[0]
+
+    stack.push(environments[0].name)
+
+    applyRules()
+
+    if printPresent:
+        print(stack[0])
