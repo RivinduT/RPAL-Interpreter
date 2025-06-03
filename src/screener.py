@@ -5,7 +5,7 @@ It tags RPAL keywords, removes unnecessary tokens, and identifies invalid ones.
 
 from src.lexicalAnalyzer import extractTokens
 
-def filterAndTagTokens(fileName):
+def filterTokens(fileName):
     # Reserved keywords in RPAL
     rpalKeywords = {
         "let", "in", "where", "rec", "fn",
