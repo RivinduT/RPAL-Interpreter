@@ -15,12 +15,32 @@ Project_structure:
       - src/:
       - Test
       - Validators
-      - Input
+      - Input ( Contains more sample input files )
+      - Makefile
+      - Input.txt
 
 run_instructions:
   note: >
   
     Make sure to include your RPAL input file (e.g., `input.txt`) inside the `/RPAL-Interpreter` directory.
+
+  Use the Makefile to simplify common commands for running and cleaning the RPAL interpreter environment.
+  Open your terminal in the project directory and Run the below commands
+  
+    - command: make
+      behavior: # Executes: python3 ./myrpal.py input.txt
+
+    - command: make print
+      behavior: # Executes: python3 ./myrpal.py -l input.txt
+
+    - command: make ast
+      behavior: # Executes: python3 ./myrpal.py -ast input.txt
+      
+    - command: make st
+      behavior: # Executes: python3 ./myrpal.py -st input.txt
+
+    - command: make clean
+      behavior: # Removes .pyc files and __pycache__ directories
 
   command_format: "python3 ./myrpal.py [-l] [-ast] [-st] filename"
   usage_details:
