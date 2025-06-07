@@ -8,7 +8,7 @@ if __name__ == "__main__":
     arguments = sys.argv
     
     if len(arguments) < 2:
-        print("Incorrect usage. Please run the command as follows:\n python ./main.py [-l] [-ast] [-st] filename")
+        print("Incorrect usage. Please run the command as follows:\n python ./myrpal.py [-l] [-ast] [-st] filename")
         sys.exit(1)
         
     else:
